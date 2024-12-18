@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>SUPERPOSITION DES PLANTATIONS</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/Plantationsparmoniteur_2.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 0.8
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[4.430793144473131,-7.5408023635301475],[4.50023973755876,-7.411121480523308]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>SUPERPOSITION DES PLANTATIONS</h2>';
+        };
+        title.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'feet',
+            secondaryLengthUnit: 'miles',
+            primaryAreaUnit: 'sqfeet',
+            secondaryAreaUnit: 'sqmiles'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+        var layer_GoogleSatellite_0 = L.tileLayer('https://www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 18
+        });
+        layer_GoogleSatellite_0;
+        map.createPane('pane_GoogleMap_1');
+        map.getPane('pane_GoogleMap_1').style.zIndex = 401;
+        var layer_GoogleMap_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=r&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMap_1',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 18
+        });
+        layer_GoogleMap_1;
+        map.addLayer(layer_GoogleMap_1);
+        function pop_Plantationsparmoniteur_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2"><strong>Noms du planteur</strong><br />' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>Date de géolocalisation</strong><br />' + (feature.properties['time'] !== null ? autolinker.link(feature.properties['time'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>Superficie (Ha)</strong><br />' + (feature.properties['Superficie'] !== null ? autolinker.link(feature.properties['Superficie'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2"><strong>Moniteur</strong><br />' + (feature.properties['Moniteur'] !== null ? autolinker.link(feature.properties['Moniteur'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Plantationsparmoniteur_2_0(feature) {
+            switch(String(feature.properties['Moniteur'])) {
+                case 'AMANGBEGNON':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(86,36,236,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'ANDREW BIG BOY':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(180,86,238,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'DJE BI':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(87,215,13,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'GNAKO ZILO':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(76,204,221,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'GNINAOUE SIOULOU':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(213,59,213,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'GNYKON ':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(218,123,183,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'KAMAGATE':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(16,42,213,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'KOUADIO NOEL':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(98,219,189,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'KOUAME VALENTIN':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(102,212,144,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'N\'DRI PAULIN':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(231,43,93,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'OUELE YVES':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,147,135,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'SINH':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(189,213,119,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'TAKY':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(208,165,122,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'TOUBOUI':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(122,163,204,0.5)',
+                interactive: true,
+            }
+                    break;
+                case 'ZADI DJOLO':
+                    return {
+                pane: 'pane_Plantationsparmoniteur_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,215,129,0.5)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Plantationsparmoniteur_2');
+        map.getPane('pane_Plantationsparmoniteur_2').style.zIndex = 402;
+        map.getPane('pane_Plantationsparmoniteur_2').style['mix-blend-mode'] = 'normal';
+        var layer_Plantationsparmoniteur_2 = new L.geoJson(json_Plantationsparmoniteur_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Plantationsparmoniteur_2',
+            layerName: 'layer_Plantationsparmoniteur_2',
+            pane: 'pane_Plantationsparmoniteur_2',
+            onEachFeature: pop_Plantationsparmoniteur_2,
+            style: style_Plantationsparmoniteur_2_0,
+        });
+        bounds_group.addLayer(layer_Plantationsparmoniteur_2);
+        map.addLayer(layer_Plantationsparmoniteur_2);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: 'Plantations par moniteur<br /><table><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_AMANGBEGNON0.png" /></td><td>AMANGBEGNON</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_ANDREWBIGBOY1.png" /></td><td>ANDREW BIG BOY</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_DJEBI2.png" /></td><td>DJE BI</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_GNAKOZILO3.png" /></td><td>GNAKO ZILO</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_GNINAOUESIOULOU4.png" /></td><td>GNINAOUE SIOULOU</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_GNYKON5.png" /></td><td>GNYKON </td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_KAMAGATE6.png" /></td><td>KAMAGATE</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_KOUADIONOEL7.png" /></td><td>KOUADIO NOEL</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_KOUAMEVALENTIN8.png" /></td><td>KOUAME VALENTIN</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_NDRIPAULIN9.png" /></td><td>N\'DRI PAULIN</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_OUELEYVES10.png" /></td><td>OUELE YVES</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_SINH11.png" /></td><td>SINH</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_TAKY12.png" /></td><td>TAKY</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_TOUBOUI13.png" /></td><td>TOUBOUI</td></tr><tr><td style="text-align: center;"><img src="legend/Plantationsparmoniteur_2_ZADIDJOLO14.png" /></td><td>ZADI DJOLO</td></tr></table>', layer: layer_Plantationsparmoniteur_2},
+            {label: "Google Map", layer: layer_GoogleMap_1, radioGroup: 'bm' },
+            {label: "Google Satellite", layer: layer_GoogleSatellite_0, radioGroup: 'bm' },]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: false, 
+        });
+        lay.addTo(map);
+		document.addEventListener("DOMContentLoaded", function() {
+            // set new Layers List height which considers toggle icon
+            function newLayersListHeight() {
+                var layerScrollbarElement = document.querySelector('.leaflet-control-layers-scrollbar');
+                if (layerScrollbarElement) {
+                    var layersListElement = document.querySelector('.leaflet-control-layers-list');
+                    var originalHeight = layersListElement.style.height 
+                        || window.getComputedStyle(layersListElement).height;
+                    var newHeight = parseFloat(originalHeight) - 50;
+                    layersListElement.style.height = newHeight + 'px';
+                }
+            }
+            var isLayersListExpanded = true;
+            var controlLayersElement = document.querySelector('.leaflet-control-layers');
+            var toggleLayerControl = document.querySelector('.leaflet-control-layers-toggle');
+            // toggle Collapsed/Expanded and apply new Layers List height
+            toggleLayerControl.addEventListener('click', function() {
+                if (isLayersListExpanded) {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                } else {
+                    controlLayersElement.classList.add('leaflet-control-layers-expanded');
+                }
+                isLayersListExpanded = !isLayersListExpanded;
+                newLayersListHeight()
+            });	
+			// apply new Layers List height if toggle layerstree
+			if (controlLayersElement) {
+				controlLayersElement.addEventListener('click', function(event) {
+					var toggleLayerHeaderPointer = event.target.closest('.leaflet-layerstree-header-pointer span');
+					if (toggleLayerHeaderPointer) {
+						newLayersListHeight();
+					}
+				});
+			}
+            // Collapsed/Expanded at Start to apply new height
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            setTimeout(function() {
+                toggleLayerControl.click();
+            }, 10);
+            // Collapsed touch/small screen
+            var isSmallScreen = window.innerWidth < 650;
+            if (isSmallScreen) {
+                setTimeout(function() {
+                    controlLayersElement.classList.remove('leaflet-control-layers-expanded');
+                    isLayersListExpanded = !isLayersListExpanded;
+                }, 500);
+            }  
+        });       
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_Plantationsparmoniteur_2,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Moniteur'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        </script>
+    </body>
+</html>
